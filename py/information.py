@@ -75,15 +75,20 @@ class CivitaiModelSearcher(ModelSearcher):
                 name = file.get("name", None)
                 extension = os.path.splitext(name)[1]
                 basename = os.path.splitext(name)[0]
+                description = res_data.get("description")
+                # 去除description的html标签
+                description = re.sub(r'<[^>]+>', '', description)
 
                 metadata_info = {
                     "website": "Civitai",
+                    "titlename": res_data.get("name"),
                     "modelPage": f"https://civitai.com/models/{model_id}?modelVersionId={version.get('id')}",
                     "author": res_data.get("creator", {}).get("username", None),
                     "baseModel": version.get("baseModel"),
                     "hashes": file.get("hashes"),
                     "metadata": file.get("metadata"),
                     "preview": [i["url"] for i in version["images"]],
+                    "description": description
                 }
 
                 description_parts: list[str] = []
@@ -106,6 +111,8 @@ class CivitaiModelSearcher(ModelSearcher):
 
                 model = {
                     "id": file.get("id"),
+                    "titlename": metadata_info.get("titlename"),
+                    "baseModel": metadata_info.get("baseModel"),
                     "shortname": shortname or basename,
                     "basename": basename,
                     "extension": extension,
@@ -114,6 +121,8 @@ class CivitaiModelSearcher(ModelSearcher):
                     "type": self._resolve_model_type(res_data.get("type", "")),
                     "pathIndex": 0,
                     "subFolder": "",
+                    "modelPage": metadata_info.get("modelPage"),
+                    "description_former": metadata_info.get("description"),
                     "description": "\n".join(description_parts),
                     "metadata": file.get("metadata"),
                     "downloadPlatform": "civitai",
@@ -335,11 +344,12 @@ class Information:
             model_type = request.match_info.get("type", None)
             index = int(request.match_info.get("index", None))
             filename = request.match_info.get("filename", None)
+            baseModel = request.match_info.get("baseModel", None)
 
             content_type = utils.resolve_file_content_type(filename)
 
             if content_type == "video":
-                abs_path = utils.get_full_path(model_type, index, filename)
+                abs_path = utils.get_full_path(model_type, index, filename, baseModel)
                 return web.FileResponse(abs_path)
 
             extension_uri = config.extension_uri

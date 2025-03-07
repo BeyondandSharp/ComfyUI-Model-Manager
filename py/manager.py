@@ -228,7 +228,7 @@ class ModelManager:
                 raise RuntimeError("Invalid type or pathIndex or fullname")
 
             # get new path
-            new_model_path = utils.get_full_path(model_type, path_index, fullname)
+            new_model_path = utils.get_full_path(model_type, path_index, fullname, model_data.get("baseModel", None))
 
             utils.rename_model(model_path, new_model_path)
 

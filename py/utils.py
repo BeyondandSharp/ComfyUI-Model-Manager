@@ -164,7 +164,7 @@ def resolve_file_content_type(filename: str):
     return content_type
 
 
-def get_full_path(model_type: str, path_index: int, filename: str):
+def get_full_path(model_type: str, path_index: int, filename: str, baseModel: str):
     """
     Get the absolute path in the model type through string concatenation.
     """
@@ -173,6 +173,8 @@ def get_full_path(model_type: str, path_index: int, filename: str):
         raise RuntimeError(f"PathIndex {path_index} is not in {model_type}")
     base_path = folders[path_index]
     full_path = join_path(base_path, filename)
+    if baseModel:
+        full_path = join_path(base_path, baseModel, filename)
     return full_path
 
 
@@ -417,6 +419,25 @@ def rename_model(model_path: str, new_model_path: str):
         new_description_path = join_path(new_model_dirname, f"{new_model_name}.md")
         shutil.move(description_path, new_description_path)
 
+def move_preview(model_path: str, new_model_path: str):
+    print(f"move_preview: {model_path} -> {new_model_path}")
+    model_dirname = os.path.dirname(model_path)
+
+    new_model_dirname = os.path.dirname(new_model_path)
+    model_name = os.path.splitext(os.path.basename(model_path))[0]
+    new_model_name = os.path.splitext(os.path.basename(new_model_path))[0]
+    # move preview
+    previews = get_model_all_images(model_path)
+    for preview in previews:
+        preview_path = join_path(model_dirname, preview)
+        preview_name = os.path.splitext(preview)[0]
+        preview_ext = os.path.splitext(preview)[1]
+        new_preview_path = (
+            join_path(new_model_dirname, new_model_name + preview_ext)
+            if preview_name == model_name
+            else join_path(new_model_dirname, new_model_name + ".preview" + preview_ext)
+        )
+        shutil.move(preview_path, new_preview_path)
 
 import pickle
 
@@ -499,3 +520,11 @@ def calculate_sha256(path, buffer_size=1024 * 1024):
                 break
             sha256.update(data)
     return sha256.hexdigest()
+
+
+def convert_bytes(size):
+    for x in ['B', 'KB', 'MB', 'GB', 'TB']:
+        if size < 1024.0:
+            return "%3.1f%s" % (size, x)
+        size /= 1024.0
+    return size
