@@ -394,12 +394,13 @@ class ModelDownload:
     ):
         from manager_downloader import download_url
 
-        async def download_complete():
+        def download_start():
             """
             Restore the model information from the task file
             and move the model file to the target directory.
             """
             from manager_core import json_merge, manager_util
+            from manager_downloader import get_download_path
             import json
             import copy
             from pathlib import Path
@@ -417,14 +418,6 @@ class ModelDownload:
 
             # append model list
             if 'CUSTOMNODEDB_PATH' in os.environ:
-                custom_node_db_paths = os.environ['CUSTOMNODEDB_PATH'].split(';')
-                # 获取custom_node_db_paths中包含civitai-list的那个
-                civitai_node_db_path = [path for path in custom_node_db_paths if 'civitai-list' in path][0]
-                civitai_model_list_path = os.path.normpath(os.path.join(civitai_node_db_path, "model-list.json"))
-                civitai_model_list = {}
-                if os.path.exists(civitai_model_list_path):
-                    civitai_model_list = await manager_util.get_data(civitai_model_list_path)
-                json_obj_merge = copy.deepcopy(civitai_model_list)
                 total_size = task_content.sizeBytes
                 # 转换total_size的Bytes为MB,GB这种的字符串
                 total_size = utils.convert_bytes(total_size)
@@ -433,6 +426,10 @@ class ModelDownload:
                 description_former = task_content.description_former
                 comfy_path = os.path.dirname(folder_paths.__file__)
                 save_path = model_dir[len(comfy_path):]
+                dir_remote = os.getenv('COMFYUI_MANAGER_DIR_REMOTE')
+                dir_net = os.getenv('COMFYUI_MANAGER_DIR_NET')
+                download_dir_net = get_download_path("download_dir_net", dir_remote, dir_net, model_dir)
+                json_path = os.path.join(download_dir_net, f"{fullname}.json")
                 save_path = str(Path(save_path).as_posix()).lower()
                 if save_path.startswith("/"):
                     save_path = save_path[1:]
@@ -454,15 +451,16 @@ class ModelDownload:
                         }
                     ]
                 }
+                
+                # 强制删除 json_path
+                if os.path.exists(json_path):
+                    os.remove(json_path)
 
-                json_obj = json_merge(json_obj_merge, json_append)
+                # 写入 json_append 到 json_path
+                with open(json_path, "w", encoding="utf-8") as f:
+                    json.dump(json_append, f, ensure_ascii=False, indent=4)
 
-                if not os.path.exists(civitai_node_db_path):
-                    os.makedirs(civitai_node_db_path)
-                #json写入civitai_model_list_path中
-                with open(civitai_model_list_path, 'w', encoding='utf-8') as file:
-                    json.dump(json_obj, file, ensure_ascii=False, indent=4)
-
+        async def download_complete():
             time.sleep(1)
             task_file = utils.join_path(download_path, f"{task_id}.task")
             os.remove(task_file)
@@ -485,8 +483,10 @@ class ModelDownload:
         model_path = os.path.normpath(utils.get_full_path(model_type, path_index, fullname, baseModel))
         model_dir = os.path.dirname(model_path)
 
+        download_start()
         download_info = download_url(model_url, model_dir, fullname)
-
+        print(f"download_info: {download_info}")
+        print(f"model_path: {model_path}")
         #如果file_local == model_path并且文件存在
         if download_info == model_path and os.path.exists(model_path):
             print(f"Download complete")
