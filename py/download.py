@@ -402,13 +402,15 @@ class ModelDownload:
             from manager_core import json_merge, manager_util
             from manager_downloader import get_download_path
             import json
-            import copy
             from pathlib import Path
 
             # Write description file
             description = task_content.description
             name = os.path.splitext(task_content.fullname)[0]
             description_file = utils.join_path(model_dir, f"{name}.md")
+            # 检查model_dir，没有则创建
+            if not os.path.exists(model_dir):
+                os.makedirs(model_dir)
             with open(description_file, "w", encoding="utf-8", newline="") as f:
                 f.write(description)
 
@@ -452,6 +454,9 @@ class ModelDownload:
                     ]
                 }
                 
+                if not os.path.exists(download_dir_net):
+                    os.makedirs(download_dir_net)
+
                 # 强制删除 json_path
                 if os.path.exists(json_path):
                     os.remove(json_path)
