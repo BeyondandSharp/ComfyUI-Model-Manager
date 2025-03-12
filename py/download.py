@@ -426,6 +426,9 @@ class ModelDownload:
                 titlename = task_content.titlename
                 modelPage = task_content.modelPage
                 description_former = task_content.description_former
+                # 如果description_former大于255个字符，则缩短至255个字符，并在最后添加省略号
+                if len(description_former) > 255:
+                    description_former = description_former[:255] + "..."
                 comfy_path = os.path.dirname(folder_paths.__file__)
                 save_path = model_dir[len(comfy_path):]
                 dir_remote = os.getenv('COMFYUI_MANAGER_DIR_REMOTE')
