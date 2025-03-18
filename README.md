@@ -1,3 +1,5 @@
+# Use ComfyUI-Manager to download and automatically write model-list.json to a specified path
+
 # comfyui-model-manager
 
 Download, browse and delete models in ComfyUI.
